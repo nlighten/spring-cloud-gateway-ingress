@@ -17,7 +17,7 @@ kubectl apply -f k8s/httpbin.yml
 sample ingress definition (deployment & service omitted)
 
 ```yaml
-aapiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1beta1
  kind: Ingress
  metadata:
    name: httpbin
