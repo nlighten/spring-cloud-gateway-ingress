@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin
+  namespace: ingress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpbin
+  template:
+    metadata:
+      labels:
+        app: httpbin
+    spec:
+      containers:
+      - image: kennethreitz/httpbin
+        name: httpbin
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            memory: "386Mi"
+          requests:
+            memory: "386Mi"
+        readinessProbe:
+          httpGet:
+            path: /anything
+            port: 80
+          initialDelaySeconds: 3
+          timeoutSeconds: 3
+          periodSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /anything
+            port: 80
+          initialDelaySeconds: 10
+          timeoutSeconds: 3
+          periodSeconds: 10
+          failureThreshold: 3
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: httpbin
+  namespace: ingress
+  labels:
+    app: httpbin
+spec:
+  selector:
+    app: httpbin
+  ports:
+  - protocol: TCP
+    port: 80
+    name: http
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: httpbin
+  namespace: ingress
+  annotations:
+    kubernetes.io/ingress.class: spring.cloud.gateway
+    spring.cloud.gateway/routes: |
+      uri: lb://httpbin
+      predicates:
+      - Host=httpbin.nlighten.nl
+      - Path=/{segment}
+      filters:
+      - SetPath=/anything/{segment}
+      - PreserveHostHeader
+      - SecureHeaders
+      - name: Retry
+        args:
+          retries: 3
+          statuses: BAD_GATEWAY
+spec:
+  backend:
+    serviceName: httpbin
+    servicePort: 80
